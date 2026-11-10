@@ -320,13 +320,11 @@ class Parsedown
     {
         if ( ! isset($Component['element']))
         {
+            $Component['element'] = array();
+
             if (isset($Component['markup']))
             {
                 $Component['element'] = array('rawHtml' => $Component['markup']);
-            }
-            elseif (isset($Component['hidden']))
-            {
-                $Component['element'] = array();
             }
         }
 

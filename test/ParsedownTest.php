@@ -179,6 +179,30 @@ EXPECTED_HTML;
         $this->assertEquals($expectedHtml, $parsedownWithNoMarkup->text($markdownWithHtml));
     }
 
+    public function testExtractElementWithoutElementKey()
+    {
+        // A component with neither "element", "markup" nor "hidden" must not
+        // trigger an "undefined index" notice; it falls back to an empty element.
+        $this->assertSame(array(), $this->Parsedown->extractElement(array()));
+
+        $this->assertSame(
+            array(),
+            $this->Parsedown->extractElement(array('hidden' => true))
+        );
+
+        $this->assertSame(
+            array('rawHtml' => '<div></div>'),
+            $this->Parsedown->extractElement(array('markup' => '<div></div>'))
+        );
+
+        $element = array('name' => 'p', 'handler' => 'line');
+
+        $this->assertSame(
+            $element,
+            $this->Parsedown->extractElement(array('element' => $element))
+        );
+    }
+
     public function testLateStaticBinding()
     {
         $parsedown = Parsedown::instance();

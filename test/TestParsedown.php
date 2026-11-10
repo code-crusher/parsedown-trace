@@ -6,4 +6,9 @@ class TestParsedown extends Parsedown
     {
         return $this->textLevelElements;
     }
+
+    public function extractElement(array $Component)
+    {
+        return parent::extractElement($Component);
+    }
 }
