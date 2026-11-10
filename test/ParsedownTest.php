@@ -179,6 +179,21 @@ EXPECTED_HTML;
         $this->assertEquals($expectedHtml, $parsedownWithNoMarkup->text($markdownWithHtml));
     }
 
+    public function test_url_autolinking_stops_at_double_quote_in_safe_mode()
+    {
+        $markdown = '<a href="http://example.com">link</a>';
+
+        $expectedHtml = '<p>&lt;a href="<a href="http://example.com">http://example.com</a>"&gt;link&lt;/a&gt;</p>';
+
+        $parsedownWithSafeMode = new TestParsedown();
+        $parsedownWithSafeMode->setSafeMode(true);
+        $this->assertEquals($expectedHtml, $parsedownWithSafeMode->text($markdown));
+
+        $parsedownWithNoMarkup = new TestParsedown();
+        $parsedownWithNoMarkup->setMarkupEscaped(true);
+        $this->assertEquals($expectedHtml, $parsedownWithNoMarkup->text($markdown));
+    }
+
     public function testLateStaticBinding()
     {
         $parsedown = Parsedown::instance();
