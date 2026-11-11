@@ -692,6 +692,12 @@ class Parsedown
         {
             return null;
         }
+        elseif ($Line['indent'] < $requiredIndent
+            and ($Line['text'][0] === '`' or $Line['text'][0] === '~')
+            and $this->blockFencedCode($Line)
+        ) {
+            return null;
+        }
 
         if ($Line['text'][0] === '[' and $this->blockReference($Line))
         {
