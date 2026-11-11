@@ -1371,7 +1371,9 @@ class Parsedown
             'element' => array(
                 'name' => 'img',
                 'attributes' => array(
-                    'src' => $Link['element']['attributes']['href'],
+                    'src' => isset($Link['element']['attributes']['href'])
+                        ? $Link['element']['attributes']['href']
+                        : $Link['element']['attributes']['id'], # empty label
                     'alt' => $Link['element']['handler']['argument'],
                 ),
                 'autobreak' => true,
@@ -1379,6 +1381,8 @@ class Parsedown
         );
 
         $Inline['element']['attributes'] += $Link['element']['attributes'];
+
+        unset($Inline['element']['attributes']['id']);
 
         unset($Inline['element']['attributes']['href']);
 
@@ -1420,7 +1424,16 @@ class Parsedown
 
         if (preg_match('/^[(]\s*+((?:[^ ()]++|[(][^ )]+[)])++)(?:[ ]+("[^"]*+"|\'[^\']*+\'))?\s*+[)]/', $remainder, $matches))
         {
-            $Element['attributes']['href'] = $matches[1];
+            if ($Element['handler']['argument'] === '')
+            {
+                # empty link label: the URL designates an anchor target,
+                # not a destination (see issue #927)
+                $Element['attributes'] = array('id' => $matches[1]);
+            }
+            else
+            {
+                $Element['attributes']['href'] = $matches[1];
+            }
 
             if (isset($matches[2]))
             {
@@ -1875,7 +1888,12 @@ class Parsedown
 
         if (isset($safeUrlNameToAtt[$Element['name']]))
         {
-            $Element = $this->filterUnsafeUrlInAttribute($Element, $safeUrlNameToAtt[$Element['name']]);
+            $urlAttribute = $safeUrlNameToAtt[$Element['name']];
+
+            if (isset($Element['attributes'][$urlAttribute]))
+            {
+                $Element = $this->filterUnsafeUrlInAttribute($Element, $urlAttribute);
+            }
         }
 
         if ( ! empty($Element['attributes']))
