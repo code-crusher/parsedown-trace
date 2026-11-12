@@ -101,6 +101,37 @@ class Parsedown
 
     protected $strictMode;
 
+    /**
+     * Wrap elements with the given name in another element.
+     *
+     * $wrapper is either the name of the wrapping element (in which case
+     * $attributes sets its attributes) or an element array with a "name"
+     * and optional "attributes", e.g.
+     * array('name' => 'div', 'attributes' => array('class' => 'wrapper')).
+     *
+     * Wrapping is applied while rendering, so it covers elements at any
+     * depth (including ones produced by handlers). Calling this method
+     * again for the same element name replaces the previous wrapper.
+     */
+    function setElementWrapper($elementName, $wrapper = 'div', array $attributes = array())
+    {
+        if (is_string($wrapper))
+        {
+            $wrapper = array('name' => $wrapper);
+
+            if ( ! empty($attributes))
+            {
+                $wrapper['attributes'] = $attributes;
+            }
+        }
+
+        $this->elementWrappers[$elementName] = $wrapper;
+
+        return $this;
+    }
+
+    protected $elementWrappers = array();
+
     protected $safeLinksWhitelist = array(
         'http://',
         'https://',
@@ -1693,6 +1724,34 @@ class Parsedown
 
         # identity map if element has no handler
         $Element = $this->handle($Element);
+
+        if (isset($Element['name'])
+            and isset($this->elementWrappers[$Element['name']])
+            and ! isset($Element['wrapperApplied'])
+        ) {
+            $Wrapper = $this->elementWrappers[$Element['name']];
+
+            # the wrapper only provides its name and attributes; its content
+            # is the wrapped element
+            unset(
+                $Wrapper['handler'],
+                $Wrapper['nonNestables'],
+                $Wrapper['text'],
+                $Wrapper['rawHtml'],
+                $Wrapper['element'],
+                $Wrapper['elements']
+            );
+
+            # mark both elements so that the wrapper itself is never wrapped
+            # (e.g. when wrapping a div in a div) and the element is only
+            # wrapped once, even if it is rendered again as a child
+            $Element['wrapperApplied'] = true;
+
+            $Wrapper['wrapperApplied'] = true;
+            $Wrapper['element'] = $Element;
+
+            return $this->element($Wrapper);
+        }
 
         $hasName = isset($Element['name']);
 

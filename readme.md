@@ -45,6 +45,41 @@ echo $Parsedown->line('Hello _Parsedown_!'); # prints: Hello <em>Parsedown</em>!
 
 More examples in [the wiki](https://github.com/erusev/parsedown/wiki/) and in [this video tutorial](http://youtu.be/wYZBY8DEikI).
 
+## Wrapping elements
+
+Some elements need a container around them — for example, a table or a code
+block that should scroll horizontally on small screens. Use
+`setElementWrapper()` to wrap every element with a given name:
+
+```php
+$Parsedown = new Parsedown();
+
+$Parsedown->setElementWrapper('table', 'div', array('class' => 'table-wrapper'));
+$Parsedown->setElementWrapper('pre', 'div', array('class' => 'code-wrapper'));
+
+echo $Parsedown->text("| a | b |\n|---|---|\n| 1 | 2 |");
+```
+
+```html
+<div class="table-wrapper"><table>
+...
+</table></div>
+```
+
+The second argument may also be a full element array:
+
+```php
+$Parsedown->setElementWrapper('pre', array(
+    'name' => 'div',
+    'attributes' => array('class' => 'code-wrapper'),
+));
+```
+
+Wrapping happens while rendering, so it also applies to elements nested inside
+other blocks (such as a table inside a blockquote). A wrapper is never wrapped
+in itself. Calling `setElementWrapper()` again for the same element name
+replaces the previous wrapper.
+
 ## Security
 
 Parsedown is capable of escaping user-input within the HTML that it generates. Additionally Parsedown will apply sanitisation to additional scripting vectors (such as scripting link destinations) that are introduced by the markdown syntax itself.

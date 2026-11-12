@@ -179,6 +179,143 @@ EXPECTED_HTML;
         $this->assertEquals($expectedHtml, $parsedownWithNoMarkup->text($markdownWithHtml));
     }
 
+    public function testWrapTableInDiv()
+    {
+        $Parsedown = new TestParsedown();
+        $Parsedown->setElementWrapper('table', 'div', array('class' => 'table-wrapper'));
+
+        $expectedMarkup = <<<EXPECTED
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>a</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+</tr>
+</tbody>
+</table></div>
+EXPECTED;
+
+        $this->assertEquals($expectedMarkup, $Parsedown->text("| a |\n|---|\n| 1 |"));
+    }
+
+    public function testWrapFencedAndIndentedCodeInDiv()
+    {
+        $Parsedown = new TestParsedown();
+        $Parsedown->setElementWrapper('pre', array(
+            'name' => 'div',
+            'attributes' => array('class' => 'code-wrapper'),
+        ));
+
+        $this->assertEquals(
+            '<div class="code-wrapper"><pre><code class="language-php">foo</code></pre></div>',
+            $Parsedown->text("```php\nfoo\n```")
+        );
+
+        $this->assertEquals(
+            "<div class=\"code-wrapper\"><pre><code>foo\nbar</code></pre></div>",
+            $Parsedown->text("    foo\n    bar")
+        );
+
+        # inline code produces a <code> element, which is not wrapped
+        $this->assertEquals(
+            '<p>use <code>foo</code> here</p>',
+            $Parsedown->text('use `foo` here')
+        );
+    }
+
+    public function testWrapElementWithElementArray()
+    {
+        $Parsedown = new TestParsedown();
+        $Parsedown->setElementWrapper('blockquote', array(
+            'name' => 'div',
+            'attributes' => array('class' => 'quote'),
+        ));
+
+        $expectedMarkup = <<<EXPECTED
+<div class="quote"><blockquote>
+<p>hi</p>
+</blockquote></div>
+EXPECTED;
+
+        $this->assertEquals($expectedMarkup, $Parsedown->text('> hi'));
+    }
+
+    public function testWrapInlineElement()
+    {
+        $Parsedown = new TestParsedown();
+        $Parsedown->setElementWrapper('a', 'span', array('class' => 'link'));
+
+        $this->assertEquals(
+            '<p>a <span class="link"><a href="http://example.com">x</a></span> b</p>',
+            $Parsedown->text('a [x](http://example.com) b')
+        );
+    }
+
+    public function testWrapNestedElements()
+    {
+        $Parsedown = new TestParsedown();
+        $Parsedown->setElementWrapper('table', 'div', array('class' => 'table-wrapper'));
+
+        $markup = $Parsedown->text("> | a |\n> |---|\n> | 1 |");
+
+        $this->assertStringContainsString('<blockquote>', $markup);
+        $this->assertStringContainsString('<div class="table-wrapper"><table>', $markup);
+        $this->assertStringContainsString('</table></div>', $markup);
+    }
+
+    public function testWrapElementDoesNotWrapWrapper()
+    {
+        # a wrapper must not be wrapped in itself, which would recurse forever
+        $Parsedown = new TestParsedown();
+        $Parsedown->setElementWrapper('blockquote', 'blockquote', array('class' => 'outer'));
+
+        $expectedMarkup = <<<EXPECTED
+<blockquote class="outer"><blockquote>
+<p>hi</p>
+</blockquote></blockquote>
+EXPECTED;
+
+        $this->assertEquals($expectedMarkup, $Parsedown->text('> hi'));
+    }
+
+    public function testWrapElementIsChainable()
+    {
+        $Parsedown = new TestParsedown();
+
+        $this->assertSame($Parsedown, $Parsedown->setElementWrapper('table'));
+        $this->assertSame($Parsedown, $Parsedown->setElementWrapper('pre'));
+    }
+
+    public function testWrapElementDefaultsToDiv()
+    {
+        $Parsedown = new TestParsedown();
+        $Parsedown->setElementWrapper('table');
+
+        $this->assertEquals(
+            '<div><table>' . "\n" . '<thead>' . "\n" . '<tr>' . "\n" . '<th>a</th>' . "\n" . '</tr>' . "\n" . '</thead>' . "\n" . '<tbody>' . "\n" . '<tr>' . "\n" . '<td>1</td>' . "\n" . '</tr>' . "\n" . '</tbody>' . "\n" . '</table></div>',
+            $Parsedown->text("| a |\n|---|\n| 1 |")
+        );
+    }
+
+    public function testWrapElementInSafeMode()
+    {
+        $Parsedown = new TestParsedown();
+        $Parsedown->setSafeMode(true);
+        $Parsedown->setElementWrapper('table', 'div', array(
+            'class' => 'table-wrapper',
+            'onclick' => 'alert(1)',
+        ));
+
+        $markup = $Parsedown->text("| a |\n|---|\n| 1 |");
+
+        $this->assertStringContainsString('<div class="table-wrapper">', $markup);
+        $this->assertStringNotContainsString('onclick', $markup);
+    }
+
     public function testLateStaticBinding()
     {
         $parsedown = Parsedown::instance();
