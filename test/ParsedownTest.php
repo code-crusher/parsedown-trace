@@ -92,6 +92,47 @@ class ParsedownTest extends TestCase
         $this->assertEquals($expectedSafeMarkup, $actualSafeMarkup);
     }
 
+    function testEntitiesInExtensionText()
+    {
+        $markdown = 'Preheat the oven to {F}350{/F} and wait 10 minutes.';
+
+        # entities supplied by an extension in an element's "text" must be
+        # preserved, see https://github.com/erusev/parsedown/issues/909
+        $expectedMarkup = '<p>Preheat the oven to <em>350&deg; F</em> and wait 10 minutes.</p>';
+
+        $entityExtension = new EntityExtension;
+        $actualMarkup = $entityExtension->text($markdown);
+
+        $this->assertEquals($expectedMarkup, $actualMarkup);
+
+        # in safe mode everything is escaped, as it is for markdown text
+        $entityExtension->setSafeMode(true);
+        $this->assertEquals(
+            '<p>Preheat the oven to <em>350&amp;deg; F</em> and wait 10 minutes.</p>',
+            $entityExtension->text($markdown)
+        );
+    }
+
+    function testEntitiesInCodeAreEscaped()
+    {
+        $markdown = '`&deg;` and `&amp;`';
+
+        # entities in code spans are literal text, so they stay escaped
+        $expectedMarkup = '<p><code>&amp;deg;</code> and <code>&amp;amp;</code></p>';
+
+        $this->assertEquals($expectedMarkup, $this->Parsedown->text($markdown));
+    }
+
+    function testEntitiesInPlainText()
+    {
+        # entities in ordinary markdown text are emitted as-is, while a
+        # lone ampersand is escaped
+        $this->assertEquals(
+            '<p>&deg; AT&amp;T &copy;</p>',
+            $this->Parsedown->text('&deg; AT&T &copy;')
+        );
+    }
+
     function data()
     {
         $data = array();

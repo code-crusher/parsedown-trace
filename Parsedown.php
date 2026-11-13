@@ -1750,7 +1750,15 @@ class Parsedown
             {
                 if (!$permitRawHtml)
                 {
-                    $markup .= self::escape($text, true);
+                    # entities in "text" may have been supplied by an
+                    # extension (e.g. "&deg;"), so they are preserved, except
+                    # in code (where they are literal) and in safe mode
+                    $preserveEntities = ! $this->safeMode
+                        && isset($Element['text'])
+                        && ( ! isset($Element['name'])
+                            || ! in_array($Element['name'], array('code', 'pre'), true));
+
+                    $markup .= self::escape($text, true, ! $preserveEntities);
                 }
                 else
                 {
@@ -1917,9 +1925,14 @@ class Parsedown
     # Static Methods
     #
 
-    protected static function escape($text, $allowQuotes = false)
+    protected static function escape($text, $allowQuotes = false, $doubleEncode = true)
     {
-        return htmlspecialchars($text, $allowQuotes ? ENT_NOQUOTES : ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars(
+            $text,
+            $allowQuotes ? ENT_NOQUOTES : ENT_QUOTES,
+            'UTF-8',
+            $doubleEncode
+        );
     }
 
     protected static function striAtStart($string, $needle)

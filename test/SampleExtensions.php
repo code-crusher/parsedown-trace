@@ -1,5 +1,30 @@
 <?php
 
+class EntityExtension extends Parsedown
+{
+    function __construct()
+    {
+        $this->InlineTypes['{'] []= 'UnitConv';
+
+        $this->inlineMarkerList .= '{';
+    }
+
+    protected function inlineUnitConv($Excerpt)
+    {
+        if (preg_match('/^{F}([0-9]+){\/F}/', $Excerpt['text'], $matches))
+        {
+            return array(
+                'extent' => strlen($matches[0]),
+                'element' => array(
+                    'name' => 'em',
+                    'text' => $matches[1] . '&deg; F',
+                ),
+            );
+        }
+    }
+}
+
+
 class UnsafeExtension extends Parsedown
 {
     protected function blockFencedCodeComplete($Block)
