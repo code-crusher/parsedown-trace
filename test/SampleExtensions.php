@@ -38,3 +38,58 @@ class TrustDelegatedExtension extends Parsedown
         return $Block;
     }
 }
+
+
+class UnmarkedTextExtension extends Parsedown
+{
+    // Convert bare email addresses in unmarked text into links, the way
+    // MantisBT does. See https://github.com/erusev/parsedown/issues/898
+    protected function unmarkedText($text)
+    {
+        $text = preg_replace(
+            '/([\w.+-]+@[\w-]+(?:\.[\w-]+)+)/',
+            '<a href="mailto:$1">$1</a>',
+            $text
+        );
+
+        return parent::unmarkedText($text);
+    }
+}
+
+
+class InheritedUnmarkedTextExtension extends UnmarkedTextExtension
+{
+}
+
+
+class AbbreviationExtension extends Parsedown
+{
+    private $abbreviations = array();
+
+    function addAbbreviation($abbreviation, $meaning)
+    {
+        $this->abbreviations[$abbreviation] = $meaning;
+
+        return $this;
+    }
+
+    // Inserts <abbr> elements into unmarked text, the way ParsedownExtra
+    // 0.7 does.
+    protected function unmarkedText($text)
+    {
+        $text = parent::unmarkedText($text);
+
+        foreach ($this->abbreviations as $abbreviation => $meaning)
+        {
+            $pattern = '/\b' . preg_quote($abbreviation, '/') . '\b/';
+
+            $text = preg_replace(
+                $pattern,
+                '<abbr title="' . $meaning . '">' . $abbreviation . '</abbr>',
+                $text
+            );
+        }
+
+        return $text;
+    }
+}

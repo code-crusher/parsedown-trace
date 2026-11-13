@@ -1196,8 +1196,7 @@ class Parsedown
                 $unmarkedText = substr($text, 0, $Inline['position']);
 
                 # compile the unmarked text
-                $InlineText = $this->inlineText($unmarkedText);
-                $Elements[] = $InlineText['element'];
+                $Elements[] = $this->unmarkedTextElement($unmarkedText);
 
                 # compile the inline
                 $Elements[] = $this->extractElement($Inline);
@@ -1212,14 +1211,12 @@ class Parsedown
 
             $unmarkedText = substr($text, 0, $markerPosition + 1);
 
-            $InlineText = $this->inlineText($unmarkedText);
-            $Elements[] = $InlineText['element'];
+            $Elements[] = $this->unmarkedTextElement($unmarkedText);
 
             $text = substr($text, $markerPosition + 1);
         }
 
-        $InlineText = $this->inlineText($text);
-        $Elements[] = $InlineText['element'];
+        $Elements[] = $this->unmarkedTextElement($text);
 
         foreach ($Elements as &$Element)
         {
@@ -1578,8 +1575,41 @@ class Parsedown
 
     protected function unmarkedText($text)
     {
+        return $text;
+    }
+
+    protected function unmarkedTextElement($text)
+    {
         $Inline = $this->inlineText($text);
-        return $this->element($Inline['element']);
+
+        # nothing to do unless an extension has taken over unmarked text
+        if ( ! $this->isUnmarkedTextOverridden())
+        {
+            return $Inline['element'];
+        }
+
+        # the text handed over is already escaped, so that an extension may
+        # return markup (e.g. links) without it being escaped
+        return array(
+            'rawHtml' => $this->unmarkedText($this->element($Inline['element'])),
+            'allowRawHtmlInSafeMode' => true,
+        );
+    }
+
+    protected function isUnmarkedTextOverridden()
+    {
+        static $overridden = array();
+
+        $class = get_class($this);
+
+        if ( ! isset($overridden[$class]))
+        {
+            $Method = new ReflectionMethod($this, 'unmarkedText');
+
+            $overridden[$class] = $Method->getDeclaringClass()->getName() !== __CLASS__;
+        }
+
+        return $overridden[$class];
     }
 
     #

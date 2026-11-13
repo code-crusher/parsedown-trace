@@ -92,6 +92,105 @@ class ParsedownTest extends TestCase
         $this->assertEquals($expectedSafeMarkup, $actualSafeMarkup);
     }
 
+    function testUnmarkedText()
+    {
+        # extensions may override unmarkedText() to handle plain text, the
+        # way MantisBT links bare email addresses
+        # see https://github.com/erusev/parsedown/issues/898
+        $markdown = 'Contact me@example.com or *anyone* at other@example.org.';
+
+        $expectedMarkup = '<p>Contact <a href="mailto:me@example.com">me@example.com</a>'
+            . ' or <em>anyone</em> at <a href="mailto:other@example.org">other@example.org</a>.</p>';
+
+        $extension = new UnmarkedTextExtension;
+        $this->assertEquals($expectedMarkup, $extension->text($markdown));
+
+        # unmarked text is handled in safe mode as well
+        $extension->setSafeMode(true);
+        $this->assertEquals($expectedMarkup, $extension->text($markdown));
+    }
+
+    function testUnmarkedTextLeavesMarkedTextAlone()
+    {
+        # only unmarked text reaches the method; text inside a code span is
+        # marked, so it is not processed
+        $extension = new UnmarkedTextExtension;
+
+        $this->assertEquals(
+            '<p><code>me@example.com</code></p>',
+            $extension->text('`me@example.com`')
+        );
+
+        # emphasis is parsed from the same line, but its content is still
+        # unmarked text as far as the hook is concerned
+        $this->assertEquals(
+            '<p><em><a href="mailto:me@example.com">me@example.com</a></em></p>',
+            $extension->text('*me@example.com*')
+        );
+    }
+
+    function testUnmarkedTextKeepsDefaultBehaviour()
+    {
+        # overriding the method does not change what the parent does with
+        # the text it is given
+        $extension = new UnmarkedTextExtension;
+
+        $this->assertEquals('plain text', $extension->line('plain text'));
+
+        $this->assertEquals(
+            "a<br />\nb",
+            $extension->line("a  \nb")
+        );
+
+        $this->assertEquals(
+            '<p>4 &lt; 5 &amp; 6</p>',
+            $extension->text('4 < 5 & 6')
+        );
+    }
+
+    function testUnmarkedTextInherited()
+    {
+        # a class inheriting the override is treated the same way
+        $extension = new InheritedUnmarkedTextExtension;
+
+        $this->assertEquals(
+            '<p><a href="mailto:me@example.com">me@example.com</a></p>',
+            $extension->text('me@example.com')
+        );
+    }
+
+    function testUnmarkedTextUntouched()
+    {
+        # without an override the rendered text is unchanged
+        $this->assertEquals(
+            '<p>me@example.com</p>',
+            $this->Parsedown->text('me@example.com')
+        );
+
+        # the method still exists and returns its input unchanged
+        $method = new ReflectionMethod('Parsedown', 'unmarkedText');
+        $this->assertTrue($method->isProtected());
+    }
+
+    function testUnmarkedTextMarkupFromExtension()
+    {
+        # markup returned by an override is rendered as markup, the way
+        # ParsedownExtra 0.7 inserts abbreviations
+        $extension = new AbbreviationExtension;
+        $extension->addAbbreviation('HTML', 'HyperText Markup Language');
+
+        $this->assertEquals(
+            '<p>The <abbr title="HyperText Markup Language">HTML</abbr> spec.</p>',
+            $extension->text('The HTML spec.')
+        );
+
+        # a code span is marked, so the abbreviation is left alone
+        $this->assertEquals(
+            '<p><code>HTML</code></p>',
+            $extension->text('`HTML`')
+        );
+    }
+
     function data()
     {
         $data = array();
