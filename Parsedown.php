@@ -718,12 +718,44 @@ class Parsedown
 
         if ( ! isset($Block['interrupted']))
         {
+            # A line may only be continued lazily into a list item if it is
+            # paragraph continuation text. A line that starts another block
+            # ends the list instead.
+
+            if ($Line['indent'] < 4 and $this->isBlockStart($Line))
+            {
+                return null;
+            }
+
             $text = preg_replace('/^[ ]{0,'.$requiredIndent.'}+/', '', $Line['body']);
 
             $Block['li']['handler']['argument'] []= $text;
 
             return $Block;
         }
+    }
+
+    protected function isBlockStart(array $Line)
+    {
+        $blockTypes = $this->unmarkedBlockTypes;
+
+        if (isset($this->BlockTypes[$Line['text'][0]]))
+        {
+            foreach ($this->BlockTypes[$Line['text'][0]] as $blockType)
+            {
+                $blockTypes []= $blockType;
+            }
+        }
+
+        foreach ($blockTypes as $blockType)
+        {
+            if ($this->{"block$blockType"}($Line) !== null)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function blockListComplete(array $Block)
