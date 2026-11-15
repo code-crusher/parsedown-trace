@@ -196,4 +196,49 @@ EXPECTED_HTML;
         $sameInstanceAgain = TestParsedown::instance('test late static binding');
         $this->assertSame($testParsedown, $sameInstanceAgain);
     }
+
+    public function testLineWithListContent()
+    {
+        # https://github.com/erusev/parsedown/issues/855
+
+        $parsedown = new TestParsedown();
+        $parsedown->setBreaksEnabled(true);
+        $parsedown->setSafeMode(true);
+
+        $markdown = "Lorem ipsum **adipiscing** elit.\n\n* trdt\n* teadf\n* adsfddf";
+
+        $actualMarkup = $parsedown->line($markdown);
+
+        # list markers must not be mistaken for emphasis delimiters
+
+        $expectedMarkup = 'Lorem ipsum <strong>adipiscing</strong> elit.<br />'."\n"
+            .'<br />'."\n"
+            .'* trdt<br />'."\n"
+            .'* teadf<br />'."\n"
+            .'* adsfddf';
+
+        $this->assertEquals($expectedMarkup, $actualMarkup);
+    }
+
+    public function testLineEmphasisFlanking()
+    {
+        $parsedown = new TestParsedown();
+
+        # a delimiter followed by whitespace can not open emphasis
+
+        $this->assertEquals('* foo', $parsedown->line('* foo'));
+
+        # a delimiter preceded by whitespace can not close emphasis
+
+        $this->assertEquals('foo *', $parsedown->line('foo *'));
+        $this->assertEquals('a * b * c', $parsedown->line('a * b * c'));
+
+        # well flanked delimiters still render emphasis
+
+        $this->assertEquals('<em>foo</em>', $parsedown->line('*foo*'));
+        $this->assertEquals('<em>foo</em> bar', $parsedown->line('*foo* bar'));
+        $this->assertEquals('foo <em>bar</em>', $parsedown->line('foo *bar*'));
+        $this->assertEquals('<strong>foo</strong>', $parsedown->line('**foo**'));
+        $this->assertEquals('<em>foo</em>', $parsedown->line('_foo_'));
+    }
 }
