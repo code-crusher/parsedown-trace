@@ -718,12 +718,23 @@ class Parsedown
 
         if ( ! isset($Block['interrupted']))
         {
+            if ($this->isLineOpeningFencedCode($Line))
+            {
+                return;
+            }
+
             $text = preg_replace('/^[ ]{0,'.$requiredIndent.'}+/', '', $Line['body']);
 
             $Block['li']['handler']['argument'] []= $text;
 
             return $Block;
         }
+    }
+
+    protected function isLineOpeningFencedCode(array $Line)
+    {
+        return ($Line['text'][0] === '`' or $Line['text'][0] === '~')
+            and $this->blockFencedCode($Line);
     }
 
     protected function blockListComplete(array $Block)
