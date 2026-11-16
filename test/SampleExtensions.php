@@ -19,6 +19,43 @@ class UnsafeExtension extends Parsedown
 }
 
 
+class FigureExtension extends Parsedown
+{
+    protected function inlineImage($Excerpt)
+    {
+        if ( ! isset($Excerpt['text'][1]) or $Excerpt['text'][1] !== '[')
+        {
+            return;
+        }
+
+        $Excerpt['text'] = substr($Excerpt['text'], 1);
+
+        $Link = $this->inlineLink($Excerpt);
+
+        if ($Link === null)
+        {
+            return;
+        }
+
+        return array(
+            'extent' => $Link['extent'] + 2,
+            'element' => array(
+                'name' => 'figure',
+                'elements' => array(
+                    array(
+                        'name' => 'img',
+                        'attributes' => array(
+                            'src' => $Link['element']['attributes']['href'],
+                            'alt' => $Link['element']['handler']['argument'],
+                        ),
+                        'autobreak' => true,
+                    ),
+                ),
+            ),
+        );
+    }
+}
+
 class TrustDelegatedExtension extends Parsedown
 {
     protected function blockFencedCodeComplete($Block)

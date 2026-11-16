@@ -92,6 +92,20 @@ class ParsedownTest extends TestCase
         $this->assertEquals($expectedSafeMarkup, $actualSafeMarkup);
     }
 
+    function testNestedElements()
+    {
+        $markdown = '![alt](src.png)';
+
+        $figureExtension = new FigureExtension;
+        $actualMarkup = $figureExtension->text($markdown);
+
+        $expectedMarkup = '<p><figure>
+<img src="src.png" alt="alt" />
+</figure></p>';
+
+        $this->assertEquals($expectedMarkup, $actualMarkup);
+    }
+
     function data()
     {
         $data = array();
