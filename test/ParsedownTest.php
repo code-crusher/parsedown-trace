@@ -196,4 +196,39 @@ EXPECTED_HTML;
         $sameInstanceAgain = TestParsedown::instance('test late static binding');
         $this->assertSame($testParsedown, $sameInstanceAgain);
     }
+
+    public function testWrappedImage()
+    {
+        $markdown = "![my-image](my-image.jpg)";
+        $expectedMarkup = '<p><div class="my-img-wrap"><img src="my-image.jpg" alt="my-image" /></div></p>';
+
+        $wrappedImage = new WrappedImageExtension;
+        $actualMarkup = $wrappedImage->text($markdown);
+
+        $this->assertEquals($expectedMarkup, $actualMarkup);
+    }
+
+    public function testWrappedImageInSafeMode()
+    {
+        $markdown = "![my-image](my-image.jpg)";
+        $expectedMarkup = '<p><div class="my-img-wrap"><img src="my-image.jpg" alt="my-image" /></div></p>';
+
+        $wrappedImage = new WrappedImageExtension;
+        $wrappedImage->setSafeMode(true);
+        $actualMarkup = $wrappedImage->text($markdown);
+
+        $this->assertEquals($expectedMarkup, $actualMarkup);
+    }
+
+    public function testWrappedImageSanitisesUrlInSafeMode()
+    {
+        $markdown = "![xss](javascript:alert(1))";
+        $expectedMarkup = '<p><div class="my-img-wrap"><img src="javascript%3Aalert(1)" alt="xss" /></div></p>';
+
+        $wrappedImage = new WrappedImageExtension;
+        $wrappedImage->setSafeMode(true);
+        $actualMarkup = $wrappedImage->text($markdown);
+
+        $this->assertEquals($expectedMarkup, $actualMarkup);
+    }
 }

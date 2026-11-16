@@ -38,3 +38,31 @@ class TrustDelegatedExtension extends Parsedown
         return $Block;
     }
 }
+
+
+class WrappedImageExtension extends Parsedown
+{
+    // wraps images in a div, as in the wiki tutorial:
+    // https://github.com/erusev/parsedown/wiki/Tutorial:-Create-Extensions
+    protected function inlineImage($Excerpt)
+    {
+        $Inline = parent::inlineImage($Excerpt);
+
+        if ( ! isset($Inline))
+        {
+            return;
+        }
+
+        return array(
+            'extent' => $Inline['extent'],
+            'element' => array(
+                'name' => 'div',
+                'handler' => 'element',
+                'text' => $Inline['element'],
+                'attributes' => array(
+                    'class' => 'my-img-wrap',
+                ),
+            ),
+        );
+    }
+}

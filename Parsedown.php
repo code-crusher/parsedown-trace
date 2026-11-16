@@ -1600,14 +1600,29 @@ class Parsedown
                 $function = $Element['handler'];
                 $argument = $Element['text'];
                 unset($Element['text']);
-                $destination = 'rawHtml';
+
+                # the "element" and "elements" handlers received elements
+                # rather than text, the elements are assigned to the
+                # matching keys so that they are rendered as elements
+                # (and therefore sanitised in safe mode)
+
+                if ($function === 'element' or $function === 'elements')
+                {
+                    $Element[$function] = $argument;
+                }
+                else
+                {
+                    $Element['rawHtml'] = $this->{$function}($argument, $Element['nonNestables']);
+                }
+
+                unset($Element['handler']);
+
+                return $Element;
             }
-            else
-            {
-                $function = $Element['handler']['function'];
-                $argument = $Element['handler']['argument'];
-                $destination = $Element['handler']['destination'];
-            }
+
+            $function = $Element['handler']['function'];
+            $argument = $Element['handler']['argument'];
+            $destination = $Element['handler']['destination'];
 
             $Element[$destination] = $this->{$function}($argument, $Element['nonNestables']);
 
