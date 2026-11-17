@@ -92,6 +92,24 @@ class ParsedownTest extends TestCase
         $this->assertEquals($expectedSafeMarkup, $actualSafeMarkup);
     }
 
+    function testTextElements()
+    {
+        $markdown = "# Header\n\nSome *text*\n\n- list\n- item\n";
+
+        $elements = $this->Parsedown->textElements($markdown);
+
+        # block-level elements are identifiable before markup conversion
+        $this->assertSame('h1', $elements[0]['name']);
+        $this->assertSame('p', $elements[1]['name']);
+        $this->assertSame('ul', $elements[2]['name']);
+
+        # converting the element array back to markup matches text()
+        $this->assertSame(
+            $this->Parsedown->text($markdown),
+            trim($this->Parsedown->elements($elements), "\n")
+        );
+    }
+
     function data()
     {
         $data = array();

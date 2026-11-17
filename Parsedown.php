@@ -34,7 +34,9 @@ class Parsedown
         return $markup;
     }
 
-    protected function textElements($text)
+    # Produces the element array for the given markdown text without
+    # converting it to markup. Useful for accessing block-level elements.
+    public function textElements($text)
     {
         # make sure no definitions are set
         $this->DefinitionData = array();
@@ -1768,7 +1770,8 @@ class Parsedown
         return $markup;
     }
 
-    protected function elements(array $Elements)
+    # Converts an array of elements (as produced by textElements()) to markup.
+    public function elements(array $Elements)
     {
         $markup = '';
 
