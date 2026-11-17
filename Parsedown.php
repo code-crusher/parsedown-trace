@@ -1418,7 +1418,7 @@ class Parsedown
             return;
         }
 
-        if (preg_match('/^[(]\s*+((?:[^ ()]++|[(][^ )]+[)])++)(?:[ ]+("[^"]*+"|\'[^\']*+\'))?\s*+[)]/', $remainder, $matches))
+        if (preg_match('/^[(]\s*+((?:[^ ()]++|[(][^ )]*+[)])++)(?:[ ]+("[^"]*+"|\'[^\']*+\'))?\s*+[)]/', $remainder, $matches))
         {
             $Element['attributes']['href'] = $matches[1];
 
