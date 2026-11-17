@@ -183,6 +183,13 @@ class Parsedown
                 continue;
             }
 
+            # tabs are expanded for the purpose of block structure, but tabs
+            # after the leading indentation are preserved in the line body
+
+            $indentLength = strspn($line, " \t");
+
+            $rawLine = $line;
+
             while (($beforeTab = strstr($line, "\t", true)) !== false)
             {
                 $shortage = 4 - mb_strlen($beforeTab, 'utf-8') % 4;
@@ -195,11 +202,13 @@ class Parsedown
 
             $indent = strspn($line, ' ');
 
+            $body = substr($line, 0, $indent) . substr($rawLine, $indentLength);
+
             $text = $indent > 0 ? substr($line, $indent) : $line;
 
             # ~
 
-            $Line = array('body' => $line, 'indent' => $indent, 'text' => $text);
+            $Line = array('body' => $body, 'indent' => $indent, 'text' => $text);
 
             # ~
 
