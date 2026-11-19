@@ -930,7 +930,12 @@ class Parsedown
 
             if ($dividerCell === '')
             {
-                return;
+                if ($alignments !== array() or strpos($Block['element']['handler']['argument'], '|') === false)
+                {
+                    return;
+                }
+
+                continue;
             }
 
             $alignment = null;
@@ -959,7 +964,12 @@ class Parsedown
 
         $headerCells = explode('|', $header);
 
-        if (count($headerCells) !== count($alignments))
+        if (count($alignments) === 0)
+        {
+            # pipes alone imply the columns of the header
+            $alignments = array_fill(0, count($headerCells), null);
+        }
+        elseif (count($headerCells) !== count($alignments))
         {
             return;
         }
