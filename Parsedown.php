@@ -31,6 +31,17 @@ class Parsedown
         # trim line breaks
         $markup = trim($markup, "\n");
 
+        # add footnotes
+        if (isset($this->DefinitionData['Footnote']))
+        {
+            $Element = $this->buildFootnoteElement();
+
+            if ( ! empty($Element['elements'][1]['elements']))
+            {
+                $markup .= "\n" . $this->element($Element);
+            }
+        }
+
         return $markup;
     }
 
@@ -38,6 +49,9 @@ class Parsedown
     {
         # make sure no definitions are set
         $this->DefinitionData = array();
+
+        # reset footnote numbering
+        $this->footnoteNumber = 0;
 
         # standardize line breaks
         $text = str_replace(array("\r\n", "\r"), "\n", $text);
@@ -142,7 +156,7 @@ class Parsedown
         '<' => array('Comment', 'Markup'),
         '=' => array('SetextHeader'),
         '>' => array('Quote'),
-        '[' => array('Reference'),
+        '[' => array('Footnote', 'Reference'),
         '_' => array('Rule'),
         '`' => array('FencedCode'),
         '|' => array('Table'),
@@ -867,6 +881,152 @@ class Parsedown
     }
 
     #
+    # Footnote
+
+    protected function blockFootnote($Line)
+    {
+        if (preg_match('/^\[\^(.+?)\]:[ ]?(.*)$/', $Line['text'], $matches))
+        {
+            $Block = array(
+                'label' => $matches[1],
+                'text' => $matches[2],
+                'hidden' => true,
+            );
+
+            return $Block;
+        }
+    }
+
+    protected function blockFootnoteContinue($Line, array $Block)
+    {
+        if ($Line['text'][0] === '[' and preg_match('/^\[\^(.+?)\]:/', $Line['text']))
+        {
+            return;
+        }
+
+        if (isset($Block['interrupted']))
+        {
+            if ($Line['indent'] >= 4)
+            {
+                $Block['text'] .= "\n\n" . $Line['text'];
+
+                return $Block;
+            }
+        }
+        else
+        {
+            $Block['text'] .= "\n" . $Line['text'];
+
+            return $Block;
+        }
+    }
+
+    protected function blockFootnoteComplete(array $Block)
+    {
+        $this->DefinitionData['Footnote'][$Block['label']] = array(
+            'text' => $Block['text'],
+            'count' => 0,
+            'number' => null,
+        );
+
+        return $Block;
+    }
+
+    protected function buildFootnoteElement()
+    {
+        $Element = array(
+            'name' => 'div',
+            'attributes' => array('class' => 'footnotes'),
+            'elements' => array(
+                array('name' => 'hr'),
+                array(
+                    'name' => 'ol',
+                    'elements' => array(),
+                ),
+            ),
+        );
+
+        $Definitions = $this->DefinitionData['Footnote'];
+
+        uasort($Definitions, array($this, 'sortFootnotes'));
+
+        foreach ($Definitions as $definitionId => $DefinitionData)
+        {
+            if ( ! isset($DefinitionData['number']))
+            {
+                continue;
+            }
+
+            $textElements = $this->textElements($DefinitionData['text']);
+
+            $backLinkElements = array();
+
+            foreach (range(1, $DefinitionData['count']) as $number)
+            {
+                $backLinkElements[] = array('text' => ' ');
+                $backLinkElements[] = array(
+                    'name' => 'a',
+                    'attributes' => array(
+                        'href' => "#fnref$number:$definitionId",
+                        'rev' => 'footnote',
+                        'class' => 'footnote-backref',
+                    ),
+                    'rawHtml' => '&#8617;',
+                    'allowRawHtmlInSafeMode' => true,
+                    'autobreak' => false,
+                );
+            }
+
+            unset($backLinkElements[0]);
+
+            $n = count($textElements) - 1;
+
+            if (isset($textElements[$n]['name']) and $textElements[$n]['name'] === 'p')
+            {
+                $backLinkElements = array_merge(
+                    array(
+                        array(
+                            'rawHtml' => '&#160;',
+                            'allowRawHtmlInSafeMode' => true,
+                        ),
+                    ),
+                    $backLinkElements
+                );
+
+                unset($textElements[$n]['name']);
+
+                $textElements[$n] = array(
+                    'name' => 'p',
+                    'elements' => array_merge(
+                        array($textElements[$n]),
+                        $backLinkElements
+                    ),
+                );
+            }
+            else
+            {
+                $textElements[] = array(
+                    'name' => 'p',
+                    'elements' => $backLinkElements,
+                );
+            }
+
+            $Element['elements'][1]['elements'] []= array(
+                'name' => 'li',
+                'attributes' => array('id' => 'fn:'.$definitionId),
+                'elements' => $textElements,
+            );
+        }
+
+        return $Element;
+    }
+
+    protected function sortFootnotes($A, $B)
+    {
+        return $A['number'] - $B['number'];
+    }
+
+    #
     # Reference
 
     protected function blockReference($Line)
@@ -1112,7 +1272,7 @@ class Parsedown
         '*' => array('Emphasis'),
         ':' => array('Url'),
         '<' => array('UrlTag', 'EmailTag', 'Markup'),
-        '[' => array('Link'),
+        '[' => array('FootnoteMarker', 'Link'),
         '_' => array('Emphasis'),
         '`' => array('Code'),
         '~' => array('Strikethrough'),
@@ -1346,6 +1506,41 @@ class Parsedown
             return array(
                 'element' => array('rawHtml' => $Excerpt['text'][1]),
                 'extent' => 2,
+            );
+        }
+    }
+
+    protected function inlineFootnoteMarker($Excerpt)
+    {
+        if (preg_match('/^\[\^(.+?)\]/', $Excerpt['text'], $matches))
+        {
+            $name = $matches[1];
+
+            if ( ! isset($this->DefinitionData['Footnote'][$name]))
+            {
+                return;
+            }
+
+            $this->DefinitionData['Footnote'][$name]['count'] ++;
+
+            if ( ! isset($this->DefinitionData['Footnote'][$name]['number']))
+            {
+                $this->DefinitionData['Footnote'][$name]['number'] = ++ $this->footnoteNumber;
+            }
+
+            $Element = array(
+                'name' => 'sup',
+                'attributes' => array('id' => 'fnref'.$this->DefinitionData['Footnote'][$name]['count'].':'.$name),
+                'element' => array(
+                    'name' => 'a',
+                    'attributes' => array('href' => '#fn:'.$name, 'class' => 'footnote-ref'),
+                    'text' => $this->DefinitionData['Footnote'][$name]['number'],
+                ),
+            );
+
+            return array(
+                'extent' => strlen($matches[0]),
+                'element' => $Element,
             );
         }
     }
@@ -1957,6 +2152,8 @@ class Parsedown
     #
 
     protected $DefinitionData;
+
+    protected $footnoteNumber = 0;
 
     #
     # Read-Only

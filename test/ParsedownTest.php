@@ -130,6 +130,47 @@ class ParsedownTest extends TestCase
         return $data;
     }
 
+    public function testFootnoteUndefined()
+    {
+        $markdown = "Undefined[^missing] reference.";
+
+        $this->assertEquals('<p>Undefined[^missing] reference.</p>', $this->Parsedown->text($markdown));
+    }
+
+    public function testFootnoteUnused()
+    {
+        $markdown = "No references here.\n\n[^unused]: Never referenced.";
+
+        # definitions which are not referenced must not add a footnotes block
+        $this->assertEquals('<p>No references here.</p>', $this->Parsedown->text($markdown));
+    }
+
+    public function testFootnoteDefinitionsAreReset()
+    {
+        $markdown = "text[^1]\n\n[^1]: one";
+
+        $first = $this->Parsedown->text($markdown);
+        $second = $this->Parsedown->text($markdown);
+
+        # numbering and definitions must not leak between documents
+        $this->assertEquals($first, $second);
+        $this->assertStringContainsString('<a href="#fn:1" class="footnote-ref">1</a>', $second);
+    }
+
+    public function testFootnoteSafeMode()
+    {
+        $markdown = "text[^1]\n\n[^1]: <script>alert(1)</script>";
+
+        $this->Parsedown->setSafeMode(true);
+
+        $markup = $this->Parsedown->text($markdown);
+
+        $this->Parsedown->setSafeMode(false);
+
+        $this->assertStringNotContainsString('<script>', $markup);
+        $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $markup);
+    }
+
     public function test_no_markup()
     {
         $markdownWithHtml = <<<MARKDOWN_WITH_MARKUP
