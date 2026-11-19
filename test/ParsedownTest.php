@@ -196,4 +196,61 @@ EXPECTED_HTML;
         $sameInstanceAgain = TestParsedown::instance('test late static binding');
         $this->assertSame($testParsedown, $sameInstanceAgain);
     }
+
+    /**
+     * Tab expansion must not depend on ext-mbstring: it is the only remaining
+     * mb_* call and fails fatally on hosts where the extension is not enabled
+     * (https://github.com/erusev/parsedown/issues/942)
+     */
+    public function testTabExpansionDoesNotUseMbstring()
+    {
+        $this->assertStringNotContainsString('mb_', file_get_contents(__DIR__ . '/../Parsedown.php'));
+    }
+
+    /**
+     * @dataProvider dataTabs
+     * @param $markdown
+     * @param $expectedMarkup
+     */
+    public function test_tab_expansion($markdown, $expectedMarkup)
+    {
+        $this->assertEquals($expectedMarkup, $this->Parsedown->text($markdown));
+    }
+
+    function dataTabs()
+    {
+        $data = array();
+
+        $data []= array( # tab at the beginning of a line (issue #942)
+            "\thello world",
+            "<pre><code>hello world</code></pre>",
+        );
+
+        $data []= array( # tab after text
+            "hello\tworld",
+            "<p>hello   world</p>",
+        );
+
+        $data []= array( # multibyte characters count as one character towards the tab stop
+            "αὐ\tworld",
+            "<p>αὐ  world</p>",
+        );
+
+        $data []= array( # a prefix filling a whole tab stop pads by one full tab stop
+            "αὐτή\tworld",
+            "<p>αὐτή    world</p>",
+        );
+
+        $data []= array( # a tab used as the indent of a block quote content
+            ">\tfoo",
+            "<blockquote>\n<p>foo</p>\n</blockquote>",
+        );
+
+        $data []= array( # a tab in a table row
+            "| a\t| b |\n| --- | --- |\n| c | d |",
+            "<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>c</td>\n<td>d</td>\n</tr>\n</tbody>\n</table>",
+        );
+
+        return $data;
+    }
 }

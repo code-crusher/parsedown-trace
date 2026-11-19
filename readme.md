@@ -18,6 +18,8 @@ Better Markdown Parser in PHP — <a href="https://parsedown.org/demo">demo</a>
 
 ## Installation
 
+Parsedown requires PHP 7.2+ with the [mbstring] extension enabled (see your `php.ini`).
+
 Install the [composer package]:
 
 ```sh
@@ -28,6 +30,7 @@ Or download the [latest release] and include `Parsedown.php`
 
 [composer package]: https://packagist.org/packages/erusev/parsedown "The Parsedown package on packagist.org"
 [latest release]: https://github.com/erusev/parsedown/releases/latest "The latest release of Parsedown"
+[mbstring]: https://www.php.net/manual/en/book.mbstring.php "PHP mbstring extension"
 
 ## Example
 

@@ -185,7 +185,9 @@ class Parsedown
 
             while (($beforeTab = strstr($line, "\t", true)) !== false)
             {
-                $shortage = 4 - mb_strlen($beforeTab, 'utf-8') % 4;
+                # expanding "\t" to the next 4-character tab stop requires
+                # counting characters, not bytes (without relying on ext-mbstring)
+                $shortage = 4 - strlen(preg_replace('/./u', ' ', $beforeTab) ?? '') % 4;
 
                 $line = $beforeTab
                     . str_repeat(' ', $shortage)
