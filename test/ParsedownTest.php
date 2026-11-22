@@ -196,4 +196,80 @@ EXPECTED_HTML;
         $sameInstanceAgain = TestParsedown::instance('test late static binding');
         $this->assertSame($testParsedown, $sameInstanceAgain);
     }
+
+    public function testAllowedTagsDropsParagraphTags()
+    {
+        // https://github.com/erusev/parsedown/issues/894
+        // paragraphs are kept apart by line breaks, without the <p> tags
+
+        $parsedown = new TestParsedown;
+        $parsedown->setAllowedTags(array('br', 'strong', 'em', 'code', 'pre', 'a'));
+
+        $markdown = "Hello **world**!\n\nSecond _paragraph_.";
+        $expectedMarkup = "Hello <strong>world</strong>!\nSecond <em>paragraph</em>.";
+
+        $this->assertEquals($expectedMarkup, $parsedown->text($markdown));
+    }
+
+    public function testAllowedTagsDropsTagsGeneratedByHandlers()
+    {
+        // the paragraph inside the quote is generated while the markup is
+        // being rendered - it has to be dropped as well
+
+        $parsedown = new TestParsedown;
+        $parsedown->setAllowedTags(array('em'));
+
+        $markdown = "> quote _emphasis_";
+        $expectedMarkup = "quote <em>emphasis</em>";
+
+        $this->assertEquals($expectedMarkup, $parsedown->text($markdown));
+    }
+
+    public function testAllowedTagsKeepsAllowedTags()
+    {
+        $parsedown = new TestParsedown;
+        $parsedown->setAllowedTags(array('p', 'strong', 'em'));
+
+        $markdown = "Hello **world** and _moon_!";
+        $expectedMarkup = '<p>Hello <strong>world</strong> and <em>moon</em>!</p>';
+
+        $this->assertEquals($expectedMarkup, $parsedown->text($markdown));
+    }
+
+    public function testAllowedTagsIsCaseInsensitive()
+    {
+        $parsedown = new TestParsedown;
+        $parsedown->setAllowedTags(array('P'));
+
+        $this->assertEquals('<p>Hello!</p>', $parsedown->text('Hello!'));
+    }
+
+    public function testAllowedTagsCanBeDisabled()
+    {
+        $parsedown = new TestParsedown;
+        $parsedown->setAllowedTags(array());
+        $parsedown->setAllowedTags(null);
+
+        $this->assertEquals('<p>Hello!</p>', $parsedown->text('Hello!'));
+    }
+
+    public function testAllowedTagsDoesNotAffectOtherInstances()
+    {
+        $parsedown = new TestParsedown;
+        $parsedown->setAllowedTags(array());
+
+        $this->assertEquals('<p>Hello!</p>', (new TestParsedown)->text('Hello!'));
+    }
+
+    public function testAllowedTagsDoesNotBypassSafeMode()
+    {
+        $parsedown = new TestParsedown;
+        $parsedown->setSafeMode(true);
+        $parsedown->setAllowedTags(array('p', 'a'));
+
+        $markdown = '[link](javascript:alert(1))';
+        $expectedMarkup = '<p><a href="javascript%3Aalert(1)">link</a></p>';
+
+        $this->assertEquals($expectedMarkup, $parsedown->text($markdown));
+    }
 }

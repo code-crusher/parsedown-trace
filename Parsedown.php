@@ -101,6 +101,17 @@ class Parsedown
 
     protected $strictMode;
 
+    function setAllowedTags($allowedTags)
+    {
+        $this->allowedTags = isset($allowedTags)
+            ? array_map('strtolower', $allowedTags)
+            : null;
+
+        return $this;
+    }
+
+    protected $allowedTags;
+
     protected $safeLinksWhitelist = array(
         'http://',
         'https://',
@@ -1693,6 +1704,14 @@ class Parsedown
 
         # identity map if element has no handler
         $Element = $this->handle($Element);
+
+        if (isset($this->allowedTags) and isset($Element['name'])
+            and ! in_array(strtolower($Element['name']), $this->allowedTags))
+        {
+            # the tag is not allowed - render the content without it
+
+            unset($Element['name'], $Element['attributes']);
+        }
 
         $hasName = isset($Element['name']);
 

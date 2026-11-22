@@ -73,6 +73,27 @@ $Parsedown->setMarkupEscaped(true);
 
 Beware that this still allows users to insert unsafe scripting vectors, ex: `[xss](javascript:alert%281%29)`.
 
+## Limiting the tags
+
+If the output is intended for a target that supports only a limited set of HTML tags, you can allow only those tags and have the rest removed:
+
+```php
+$Parsedown->setAllowedTags(array('br', 'strong', 'em', 'a'));
+```
+
+The tags that are not allowed are dropped, while their content is preserved. Paragraphs, for example, are kept apart by line breaks instead of `<p>` tags:
+
+```php
+echo $Parsedown->text("Hello **world**!\n\nSecond _paragraph_.");
+```
+
+```html
+Hello <strong>world</strong>!
+Second <em>paragraph</em>.
+```
+
+Beware that this is not a security feature and does not escape or sanitise the content; use [safe mode](#security) for untrusted input.
+
 ## Questions
 
 **How does Parsedown work?**
