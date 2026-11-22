@@ -545,12 +545,16 @@ class Parsedown
             return;
         }
 
-        $text = trim($Line['text'], '#');
+        $text = ltrim($Line['text'], '#');
 
         if ($this->strictMode and isset($text[0]) and $text[0] !== ' ')
         {
             return;
         }
+
+        # strip the optional closing sequence of #s, which must be preceded by a space
+
+        $text = preg_replace('/[ ]#+[ ]*$/', '', $text);
 
         $text = trim($text, ' ');
 

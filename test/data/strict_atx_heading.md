@@ -23,3 +23,15 @@
 # # of levels
 
 # # of levels # #
+
+## Functions in C#
+
+# C#
+
+# no space before closing hash#
+
+# space before closing hash #
+
+# escaped closing hash \#
+
+# trailing spaces after closing hash ###   
