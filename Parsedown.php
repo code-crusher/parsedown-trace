@@ -877,8 +877,8 @@ class Parsedown
             $id = strtolower($matches[1]);
 
             $Data = array(
-                'url' => $matches[2],
-                'title' => isset($matches[3]) ? $matches[3] : null,
+                'url' => $this->unescape($matches[2]),
+                'title' => isset($matches[3]) ? $this->unescape($matches[3]) : null,
             );
 
             $this->DefinitionData['Reference'][$id] = $Data;
@@ -1350,6 +1350,18 @@ class Parsedown
         }
     }
 
+    protected function unescape($text)
+    {
+        if (strpos($text, '\\') === false)
+        {
+            return $text;
+        }
+
+        $specialCharacters = preg_quote(implode('', $this->specialCharacters), '/');
+
+        return preg_replace('/\\\\([' . $specialCharacters . '])/', '$1', $text);
+    }
+
     protected function inlineImage($Excerpt)
     {
         if ( ! isset($Excerpt['text'][1]) or $Excerpt['text'][1] !== '[')
@@ -1372,7 +1384,7 @@ class Parsedown
                 'name' => 'img',
                 'attributes' => array(
                     'src' => $Link['element']['attributes']['href'],
-                    'alt' => $Link['element']['handler']['argument'],
+                    'alt' => $this->unescape($Link['element']['handler']['argument']),
                 ),
                 'autobreak' => true,
             ),
@@ -1405,7 +1417,7 @@ class Parsedown
 
         $remainder = $Excerpt['text'];
 
-        if (preg_match('/\[((?:[^][]++|(?R))*+)\]/', $remainder, $matches))
+        if (preg_match('/\[((?:[^][\\\\]++|\\\\.|(?R))*+)\]/s', $remainder, $matches))
         {
             $Element['handler']['argument'] = $matches[1];
 
@@ -1418,20 +1430,22 @@ class Parsedown
             return;
         }
 
-        if (preg_match('/^[(]\s*+((?:[^ ()]++|[(][^ )]+[)])++)(?:[ ]+("[^"]*+"|\'[^\']*+\'))?\s*+[)]/', $remainder, $matches))
+        $specialCharacters = preg_quote(implode('', $this->specialCharacters), '/');
+
+        if (preg_match('/^[(]\s*+((?:\\\\['.$specialCharacters.']|\\\\|[^ ()\\\\]++|[(][^ )]+[)])++)(?:[ ]+("[^"]*+"|\'[^\']*+\'))?\s*+[)]/', $remainder, $matches))
         {
-            $Element['attributes']['href'] = $matches[1];
+            $Element['attributes']['href'] = $this->unescape($matches[1]);
 
             if (isset($matches[2]))
             {
-                $Element['attributes']['title'] = substr($matches[2], 1, - 1);
+                $Element['attributes']['title'] = $this->unescape(substr($matches[2], 1, - 1));
             }
 
             $extent += strlen($matches[0]);
         }
         else
         {
-            if (preg_match('/^\s*\[(.*?)\]/', $remainder, $matches))
+            if (preg_match('/^\s*\[((?:\\\\.|.)*?)\]/', $remainder, $matches))
             {
                 $definition = strlen($matches[1]) ? $matches[1] : $Element['handler']['argument'];
                 $definition = strtolower($definition);
